@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Display buildings in 3D</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+  <style>
+  body { margin: 0; padding: 0; }
+  #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+	// TO MAKE THE MAP APPEAR YOU MUST ADD YOUR ACCESS TOKEN FROM https://account.mapbox.com
+	mapboxgl.accessToken = 'pk.eyJ1IjoidGlhbm1pbmdsaXUiLCJhIjoiY2xvOXYwMG02MGhqdjJwbzZ1azh0eDNmNyJ9.i1VILG4IcS1PSxo6gFVOmQ';
+    const map = new mapboxgl.Map({
+        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-0.015618029384118062,51.50545486551159],
+        zoom: 15.4,
+        pitch: 60,
+        bearing: -17.6,
+        container: 'map',
+        antialias: true
+    });
+
+    map.on('style.load', () => {
+        // Insert the layer beneath any symbol layer.
+        const layers = map.getStyle().layers;
+        const labelLayerId = layers.find(
+            (layer) => layer.type === 'symbol' && layer.layout['text-field']
+        ).id;
+
+        // The 'building' layer in the Mapbox Streets
+        // vector tileset contains building height data
+        // from OpenStreetMap.
+        map.addLayer(
+            {
+                'id': 'add-3d-buildings',
+                'source': 'composite',
+                'source-layer': 'building',
+                'filter': ['==', 'extrude', 'true'],
+                'type': 'fill-extrusion',
+                'minzoom': 13,
+                'paint': {
+                    'fill-extrusion-color': '#000000',
+                    'stroke-extrusion-color':'#ffffff',
+
+                    // Use an 'interpolate' expression to
+                    // add a smooth transition effect to
+                    // the buildings as the user zooms in.
+                    'fill-extrusion-height': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        14,
+                        0,
+                        14.6,
+                        ['get', 'height']
+                    ],
+                    'fill-extrusion-base': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        15,
+                        0,
+                        15.05,
+                        ['get', 'min_height']
+                    ],
+                    'fill-extrusion-opacity': 0.6
+                }
+            },
+            labelLayerId
+        );
+      
+          // Start rotation animation after the initial flyTo completes
+        setTimeout(() => {
+            rotateCamera(0);
+        }, 1000); // Adjust time as needed
+                 
+    });
+  
+    function rotateCamera(currentBearing) {
+        // Increment currentBearing
+        currentBearing = (currentBearing + 60) % 360;
+
+        // Rotate the camera
+        map.rotateTo(currentBearing, {
+            duration: 2000,
+            easing: (t) => t
+        });
+
+        // Continue the rotation
+        // Use setTimeout to control the speed of rotation
+        if (currentBearing !== 0) {
+            setTimeout(() => {
+                rotateCamera(currentBearing);
+            }, 2000); // Adjust time as needed
+        }
+    }
+  
+</script>
+
+</body>
+</html>
