@@ -59,22 +59,22 @@
         }
 
         #refreshData {
-            position: fixed; /* 固定位置 */
-            top: 400px; /* 距离顶部20像素 */
-            right: 100px; /* 距离右侧20像素 */
-            padding: 10px; /* 内边距 */
-            background-color: #4b4b4b; /* 背景色 */
-            color: white; /* 字体颜色 */
+            position: fixed; /* Fixed location */
+            top: 400px; /* Top location */
+            right: 100px; /* Right location */
+            padding: 10px; /* Offset dist */
+            background-color: #4b4b4b; /* background color */
+            color: white; /* font color */
             border-color: white;
-            border-radius: 5px; /* 圆角 */
-            cursor: pointer; /* 鼠标指针变为手形 */
+            border-radius: 5px; /* fillet radius */
+            cursor: pointer; /* hand shape pointer */
             font-size: 15px;
             font-weight: 900;
             font-family:Georgia, 'Times New Roman', Times, serif;
         }
 
         #refreshData:hover {
-            background-color: #383838; /* 鼠标悬停时的背景色 */
+            background-color: #383838; /* Hover color */
         }
 
     </style>
@@ -142,14 +142,45 @@
             });
         }
 
-        // Usage
-        map.on('load', async () => {
+        // Function to get the realtime location of the user
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('Geolocation is not supported by your browser');
+                } else {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                }
+            });
+        }
+
+        // Map Usage
+        map.on('load', async () => {        
             const earthquakes = await fetchEarthquakeData();
             addEarthquakeMarkersToMap(map, earthquakes);
             // Circle Scatter Chart
             const earthquakeDatas = preprocessData(earthquakes);
             createCircularScatterChart(earthquakeDatas);
-        });
+
+            // Rotate View to current location
+            try {
+                const userLocation = await getUserLocation();
+                const userLat = userLocation.coords.latitude;
+                const userLng = userLocation.coords.longitude;
+
+                const currentBearing = map.getBearing();
+
+                map.flyTo({
+                    center: [userLng, userLat],
+                    bearing: currentBearing,
+                    zoom: map.getZoom(), // keeps the current zoom level
+                    essential: true, // this animation is considered essential with respect to prefers-reduced-motion
+                    speed: 0.3, // adjust this value as needed, lower is slower
+                    duration: 8000 // duration of the transition in milliseconds, adjust as needed
+                });
+            } catch(error) {
+                console.error('Error getting user location:', error);
+            }
+            });
 
         function preprocessData(features) {
             return features.map(feature => {
@@ -172,15 +203,15 @@
                 .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
             
-            const axisLineLength = 0; // 引线长度
-            const numRadials = 12; // 每两个小时一个时间标注
+            const axisLineLength = 0; // length for time line
+            const numRadials = 24; // Num of the time line
             for (let i = 0; i < numRadials; i++) {
                 const angle = (i / numRadials) * 2 * Math.PI;
-                // 计算时间刻度线的起点和终点坐标
+                // Calculate the time line startPt and endPt
                 const lineStartX = (radius - 4) * Math.cos(angle);
                 const lineStartY = (radius - 4) * Math.sin(angle);
-                const lineEndX = (radius - axisLineLength) * Math.cos(angle); // 假设刻度线长度为5
-                const lineEndY = (radius - axisLineLength) * Math.sin(angle); // 假设刻度线长度为5
+                const lineEndX = (radius - axisLineLength) * Math.cos(angle);
+                const lineEndY = (radius - axisLineLength) * Math.sin(angle); 
 
                 g.append("line")
                 .attr("x1", lineStartX)
@@ -190,21 +221,21 @@
                 .style("stroke", "white")
                 .style("stroke-width", 1);
 
-                // 添加时间标注
-                if (i % 1 === 0) { // 每两个小时
-                    // 计算文本的位置并向圆心方向偏移（固定偏移方向）
-                    const offset = 10; // 偏移量
+                // Add time anotation
+                if (i % 1 === 0) { // Every two hours
+                    // Set a offset distance for time anotation
+                    const offset = 10;
                     const textX = lineEndX - offset * Math.cos(angle);
                     const textY = lineEndY - offset * Math.sin(angle);
 
-                    // 计算文本的旋转角度，使其与切线方向相切
+                    // Calculate the angle to rotate the text for making it parallel with the circle
                     const textRotation = angle * (180 / Math.PI) - 90;
 
-                    // 创建包含旋转的 <g> 元素，以使文字与切线方向相切
+                    // Create the text element for time anotation
                     const textGroup = g.append("g")
                         .attr("transform", `translate(${textX},${textY}) rotate(${textRotation})`);
 
-                    // 添加时间标注文本
+                    // Add time series anotation
                     textGroup.append("text")
                         .attr("dy", ".35em")
                         .style("text-anchor", "middle")
@@ -214,39 +245,39 @@
                 }
             }
             const extendLineLength =10;
-            const textOffset = 10; // 文本距离数据点的偏移量
+            const textOffset = 10;
             
 
-            // 创建一个比例尺，将震级映射到半径范围
+            // Create a scale to map the magnitude
             const radiusScale = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.magnitude || 0)]) // 使用默认值0来处理没有震级信息的数据点
-                .range([2, 7]); // 定义半径范围，根据需要调整
+                .domain([0, d3.max(data, d => d.magnitude || 0)])
+                .range([1, 9]); // Set the radius range for the point to change
 
 
             data.forEach(d => {
-                // 使用UTC时间来获取小时和分钟
+                // Use UTC time to get the hour and minute
                 const hours = d.time.getUTCHours();
                 const minutes = d.time.getUTCMinutes();
                 const totalMinutes = hours * 60 + minutes;
 
-                // 将总分钟数转换为圆上的角度
+                // Convert the time among the day into the degree of the circle scatter chart
                 const angle = (totalMinutes / (24 * 60)) * 2 * Math.PI;
 
-                // 计算散点图的x和y坐标
+                // Calculate the location of the scatter point
                 const x = radius * Math.cos(angle);
                 const y = radius * Math.sin(angle);
 
-                 // 计算圆点的半径，使用比例尺
-                const pointRadius = radiusScale(d.magnitude || 0); // 使用默认值0来处理没有震级信息的数据点
+                 // Calculate the circle radius via scale
+                const pointRadius = radiusScale(d.magnitude || 0); // If there is no mag data, display 0
 
-                // 将圆点添加到SVG中
+                // Add scatter points in the chart
                 g.append('circle')
                     .attr('cx', x)
                     .attr('cy', y)
-                    .attr('r', pointRadius) // 圆点的半径
-                    .style('fill', 'white'); // 圆点的颜色
+                    .attr('r', pointRadius) // Dot radius
+                    .style('fill', 'white'); // Dot color
                 
-                // 添加引线
+                // Add line for the anotation
                 const lineEndX = (radius + extendLineLength) * Math.cos(angle);
                 const lineEndY = (radius + extendLineLength) * Math.sin(angle);
 
@@ -258,21 +289,25 @@
                     .style("stroke", "grey")
                     .style("stroke-width", 0.5)
                     .style("stroke-dasharray", "2,2");
-                // 添加标题标注
+                // Add earthquake detail
                 if (d.title) {
-                    // 使用 "of" 分割标题以获取 "of" 后面的内容
+                    // split the text to display the location only
                     const titleParts = d.title.split('of');
 
-                    // 获取 "of" 后面的内容，去除前后空格
+                    // get the location info behind the "of"
                     const displayedLocation = titleParts[1] ? titleParts[1].trim() : "No location details";
 
-                    const textAngle = angle * (180 / Math.PI); // 将弧度转换为度
+                    const displayColor = titleParts[1] ? "white" : "red";
 
-                    // 计算文本的起始坐标，向外偏移一定距离
+                    const displaySize = titleParts[1] ? "9px" : "7px";
+
+                    const textAngle = angle * (180 / Math.PI); // Convert the degree
+
+                    // Calculate the start location of text
                     const textStartX = x + (textOffset * Math.cos(angle));
                     const textStartY = y + (textOffset * Math.sin(angle));
 
-                    // 计算文本的锚点坐标
+                    // Calculate the text end location
                     const textAnchorX = lineEndX + (extendLineLength / 2) * Math.cos(angle);
                     const textAnchorY = lineEndY + (extendLineLength / 2) * Math.sin(angle);
 
@@ -280,38 +315,18 @@
                         .attr("x", textStartX)
                         .attr("y", textStartY)
                         .style("text-anchor", "left")
-                        .style("font-size", "9.5px")
-                        .style("fill", d.title ? "white" : "red")
+                        .style("font-size", displaySize)
+                        .style("fill", displayColor)
                         .attr("transform", `rotate(${textAngle},${textAnchorX},${textAnchorY})`)
                         .text(displayedLocation);
-                } else {
-                    // 如果没有标题数据，则显示 "No location details" 文本标注
-                    const textAngle = angle * (180 / Math.PI); // 将弧度转换为度
-
-                    // 计算文本的起始坐标，向外偏移一定距离
-                    const textStartX = x + (textOffset * Math.cos(angle));
-                    const textStartY = y + (textOffset * Math.sin(angle)) + 12; // 向下偏移以避免覆盖
-
-                    // 计算文本的锚点坐标
-                    const textAnchorX = lineEndX + (extendLineLength / 2) * Math.cos(angle);
-                    const textAnchorY = lineEndY + (extendLineLength / 2) * Math.sin(angle);
-
-                    g.append("text")
-                        .attr("x", textStartX)
-                        .attr("y", textStartY)
-                        .style("text-anchor", "left")
-                        .style("font-size", "9.5px")
-                        .style("fill", "red")
-                        .attr("transform", `rotate(${textAngle},${textAnchorX},${textAnchorY})`)
-                        .text("No location details");
-                }
+                };
             });
         }
 
         document.getElementById('refreshData').addEventListener('click', async () => {
             const earthquakes = await fetchEarthquakeData();
             addEarthquakeMarkersToMap(map, earthquakes);
-            // 这里可以添加其他更新地图的逻辑
+            // Update the scatter chart
             const earthquakeDatas = preprocessData(earthquakes);
             createCircularScatterChart(earthquakeDatas);
         });

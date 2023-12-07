@@ -3,3 +3,5 @@
 .DS_Store
 .AppleDouble
 .LSOverride
+./3d_Building/js/mapbox.js
+./global_mapping/js/mapbox.js
