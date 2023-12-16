@@ -1,0 +1,74 @@
+<!DOCTYPE html> 
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title> D3.js </title>
+         
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+    </head>
+
+    <body>
+        <!-- Create a container for the chart. -->
+        <svg id="mainsvg" class="svgs" width="1600" height="800"></svg>
+    
+        <!-- Code for D3.js-->
+        <script>
+
+            // ----------Basic Setting for d3.js SVG Canvas----------//
+
+            // select the mainsvg
+            var svg = d3.select("#mainsvg");
+            // Edit the size of the SVG element
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+            // Edit the margin of the SVG element
+            // This is for the extra space around the SVG element, such as the space for the axis
+            const margin = {top: 50, bottom: 50, left: 50, right: 50};
+            // Calculate the main canvas size of the SVG element
+            const innerWidth = width - margin.left - margin.right;
+            const innerHeight = height - margin.top - margin.bottom;
+
+            // Create a group for elemens in the SVG element
+            const mainGroup = svg.append("g")
+                                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            // ----------Loading and Preprocessing Data----------//
+
+            // Load data from a api url
+            d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.geojson").then(function(data) {
+                // Get the data list for mag, place and time
+                const magList = data.features.map(d => d.properties.mag);
+                const placeList = data.features.map(d => d.properties.place);
+                const timeList = data.features.map(d => d.properties.time);
+                // Convert the time from unix time to date time in 24 hours format but maintain the accuracy of the time
+                const timeIn24Hours = timeList.map(d => new Date(d).toLocaleTimeString('en-US', { hour12: false }));
+                
+                // Initialize the scales
+                const xScale = d3.scaleLinear();
+                const yScale = d3.scaleLinear();
+                // Calculate the scales
+                xScale.domain([0,24]).range([0,innerWidth]);
+                yScale.domain([0,10]).range([innerHeight,0]);
+
+                // Create the Radius Scale
+                const rScale = d3.scaleLinear();
+                rScale.domain([0,10]).range([2,40]);
+
+                // Data join for circles
+                mainGroup.selectAll('circle').data(data.features).join('circle')
+                            .attr('cx', d => xScale(new Date(d.properties.time).getHours() + new Date(d.properties.time).getMinutes()/60))
+                            .attr('cy', d => yScale(d.properties.mag))
+                            .attr('r', d => rScale(d.properties.mag))
+                            .attr('fill', 'white')
+                            .attr('stroke', 'black');
+                            
+                
+                // Add axes
+                const xAxis = d3.axisBottom(xScale);
+                const yAxis = d3.axisLeft(yScale);
+                mainGroup.append('g').call(xAxis).attr('transform', `translate(0, ${innerHeight})`);
+                mainGroup.append('g').call(yAxis);
+            });
+        </script>
+
+</html>
