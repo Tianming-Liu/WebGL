@@ -1,92 +1,33 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Orient markers toward the horizon</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Playfair Display">
+    <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
     
+    <link rel="stylesheet" href="./css/style.css">
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
-
     <script src="./js/utils.js"></script>
-
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: black;
-        }
-        #map {
-            width: 550px;  /* or your desired size */
-            height: 550px; /* make width and height equal for a perfect circle */
-            border-radius: 50%; /* this creates the circular shape */
-            overflow: hidden; /* this ensures anything outside the circle is not shown */
-            margin: auto;
-        }
-
-        /*Use Svg Image to Highlight the Location*/
-        /* .custom-marker {
-            background-image: url('./src/icon.svg'); 
-            background-size: cover;
-            width: 25px;  
-            height: 25px; 
-            opacity: 0.5;
-        } */
-
-        /*Use the blur circle directly*/
-        .custom-marker {
-            background-color: rgb(170, 32, 32);
-            border-color: rgb(0, 0, 0);
-            border-width: 1px;
-            border-style: double;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            /* box-shadow: 0 0 6px 2px rgb(161, 36, 36); */
-        }
-
-        #scatter-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 900px; /* Larger than the map to fit around it */
-            height: 900px;
-            pointer-events: none; /* Allows interaction with the map underneath */
-        }
-
-        #refreshData {
-            position: fixed; /* Fixed location */
-            top: 400px; /* Top location */
-            right: 100px; /* Right location */
-            padding: 10px; /* Offset dist */
-            background-color: #4b4b4b; /* background color */
-            color: white; /* font color */
-            border-color: white;
-            border-radius: 5px; /* fillet radius */
-            cursor: pointer; /* hand shape pointer */
-            font-size: 15px;
-            font-weight: 900;
-            font-family:Georgia, 'Times New Roman', Times, serif;
-        }
-
-        #refreshData:hover {
-            background-color: #383838; /* Hover color */
-        }
-
-    </style>
 </head>
+
 <body>
     <div id="map"></div>
 
     <div id="scatter-container"></div>
 
     <button id="refreshData">RefreshData</button>
+
+    <div id ="datasetInfo">
+        <h1>Earth Motion</h1>
+        <p id = "param">We use the USGS real time data to visualize the earthquake activities.</p>
+        <p id = "param">You can trace the semistic activity in a global view.</p>
+    </div>
     
     <script src="./js/mapbox.js"></script>
 
@@ -112,6 +53,8 @@
             const earthquakeDatas = preprocessData(earthquakes);
             createCircularScatterChart(earthquakeDatas);
 
+            // addScatterPointMouseOver();
+
             // Rotate View to current location
             try {
                 const userLocation = await getUserLocation();
@@ -128,49 +71,10 @@
                     speed: 0.3, // adjust this value as needed, lower is slower
                     duration: 8000 // duration of the transition in milliseconds, adjust as needed
                 });
-
-                // // Add arcs after rotating to the current location
-                // map.once('moveend', () => {
-                //     earthquakes.forEach(quake => {
-                //         const quakeLat = quake.geometry.coordinates[1];
-                //         const quakeLng = quake.geometry.coordinates[0];
-                        
-                //         const arcPoints = calculateArcPoints(
-                //             { lat: userLat, lng: userLng },
-                //             { lat: quakeLat, lng: quakeLng }
-                //         );
-
-                //         map.addSource('arc-' + quake.id, {
-                //             'type': 'geojson',
-                //             'data': {
-                //                 'type': 'Feature',
-                //                 'geometry': {
-                //                     'type': 'LineString',
-                //                     'coordinates': arcPoints
-                //                 }
-                //             }
-                //         });
-
-                //         map.addLayer({
-                //             'id': 'arc-line-' + quake.id,
-                //             'type': 'line',
-                //             'source': 'arc-' + quake.id,
-                //             'layout': {
-                //                 'line-cap': 'round',
-                //                 'line-join': 'round'
-                //             },
-                //             'paint': {
-                //                 'line-color': '#ff0000', // Adjust color as needed
-                //                 'line-width': 2
-                //             }
-                //         });
-                //     });
-                // });
-
             } catch(error) {
                 console.error('Error getting user location:', error);
             }
-            });
+        });
 
         document.getElementById('refreshData').addEventListener('click', async () => {
             const earthquakes = await fetchEarthquakeData();

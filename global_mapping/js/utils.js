@@ -6,9 +6,9 @@ async function fetchEarthquakeData() {
 
     const formatDate = (date) => date.toISOString().split('T')[0];
 
-    const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${formatDate(today)}&endtime=${formatDate(tomorrow)}&minmagnitude=1`;
+    const urltemp = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${formatDate(today)}&endtime=${formatDate(tomorrow)}&minmagnitude=1`;
 
-    // const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2023-12-05&endtime=2023-12-06&minmagnitude=1`;
+    const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2023-12-06&endtime=2023-12-07&minmagnitude=1`;
 
     try {
         const response = await fetch(url);
@@ -63,7 +63,7 @@ function calculateArcPoints(start, end, numPoints = 100) {
 }
 
 function createCircularScatterChart(data) {
-    const width = 900, height = 900, radius = 290;
+    const width = 900, height = 900, radius = 305;
     const svg = d3.select("#scatter-container").append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -73,7 +73,7 @@ function createCircularScatterChart(data) {
 
     
     const axisLineLength = 0; // length for time line
-    const numRadials = 24; // Num of the time line
+    const numRadials = 12; // Num of the time line
     for (let i = 0; i < numRadials; i++) {
         const angle = (i / numRadials) * 2 * Math.PI;
         // Calculate the time line startPt and endPt
@@ -93,7 +93,7 @@ function createCircularScatterChart(data) {
         // Add time anotation
         if (i % 1 === 0) { // Every two hours
             // Set a offset distance for time anotation
-            const offset = 10;
+            const offset = 20;
             const textX = lineEndX - offset * Math.cos(angle);
             const textY = lineEndY - offset * Math.sin(angle);
 
@@ -113,7 +113,7 @@ function createCircularScatterChart(data) {
                 .text(`${i * 2}:00`);
         }
     }
-    const extendLineLength =10;
+    const extendLineLength =25;
     const textOffset = 10;
     
 
@@ -138,13 +138,6 @@ function createCircularScatterChart(data) {
 
          // Calculate the circle radius via scale
         const pointRadius = radiusScale(d.magnitude || 0); // If there is no mag data, display 0
-
-        // Add scatter points in the chart
-        g.append('circle')
-            .attr('cx', x)
-            .attr('cy', y)
-            .attr('r', pointRadius) // Dot radius
-            .style('fill', 'white'); // Dot color
         
         // Add line for the anotation
         const lineEndX = (radius + extendLineLength) * Math.cos(angle);
@@ -158,6 +151,36 @@ function createCircularScatterChart(data) {
             .style("stroke", "grey")
             .style("stroke-width", 0.5)
             .style("stroke-dasharray", "2,2");
+
+        // Add scatter points in the chart
+        g.append('circle')
+        .attr('class', 'scatter-point')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', pointRadius) // Dot radius
+        .style('fill', 'white') // Dot color
+        .on("mouseover", (event, d) => {
+            console.log("Mouse over event triggered");
+            console.log("Event:", event);
+            console.log("Data:", d);
+            d3.select(event.target)
+                .transition()
+                .duration(200)
+                .attr("r", 25)
+                .style("fill", "red");
+        })
+        .on("mouseout", (event, d) => {
+            console.log("Mouse out event triggered");
+            console.log("Event:", event);
+            console.log("Data:", d);
+            d3.select(event.target)
+                .transition()
+                .duration(200)
+                .attr("r", 5)
+                .style("fill", "white");
+        });
+        
+        
         // Add earthquake detail
         if (d.title) {
             // split the text to display the location only
@@ -172,21 +195,13 @@ function createCircularScatterChart(data) {
 
             const textAngle = angle * (180 / Math.PI); // Convert the degree
 
-            // Calculate the start location of text
-            const textStartX = x + (textOffset * Math.cos(angle));
-            const textStartY = y + (textOffset * Math.sin(angle));
-
-            // Calculate the text end location
-            const textAnchorX = lineEndX + (extendLineLength / 2) * Math.cos(angle);
-            const textAnchorY = lineEndY + (extendLineLength / 2) * Math.sin(angle);
-
             g.append("text")
-                .attr("x", textStartX)
-                .attr("y", textStartY)
+                .attr("x", lineEndX)
+                .attr("y", lineEndY)
                 .style("text-anchor", "left")
                 .style("font-size", displaySize)
                 .style("fill", displayColor)
-                .attr("transform", `rotate(${textAngle},${textAnchorX},${textAnchorY})`)
+                .attr("transform", `rotate(${textAngle},${lineEndX},${lineEndY})`)
                 .text(displayedLocation);
         };
     });
@@ -200,4 +215,22 @@ function preprocessData(features) {
             title: feature.properties.title
         };
     });
+}
+
+
+
+// Find the closest earthquake point to the user location
+function findClosestEarthquake(userLocation, earthquakes) {
+    let closestEarthquake = earthquakes[0];
+    let closestDistance = Infinity;
+
+    earthquakes.forEach(earthquake => {
+        const distance = turf.distance(userLocation, earthquake.geometry, { units: 'miles' });
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestEarthquake = earthquake;
+        }
+    });
+
+    return closestEarthquake;
 }

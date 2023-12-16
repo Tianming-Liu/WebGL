@@ -1,0 +1,97 @@
+/* fix the script for html to import*/
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+}
+#map {
+    width: 550px;  /* or your desired size */
+    height: 550px; /* make width and height equal for a perfect circle */
+    border-radius: 50%; /* this creates the circular shape */
+    overflow: hidden; /* this ensures anything outside the circle is not shown */
+    margin: auto;
+}
+
+/*Use Svg Image to Highlight the Location*/
+/* .custom-marker {
+    background-image: url('./src/icon.svg'); 
+    background-size: cover;
+    width: 25px;  
+    height: 25px; 
+    opacity: 0.5;
+} */
+
+/*Use the blur circle directly*/
+.custom-marker {
+    background-color: rgb(170, 32, 32);
+    border-color: #000000;
+    border-width: 1px;
+    border-style: double;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    /* box-shadow: 0 0 6px 2px rgb(161, 36, 36); */
+}
+
+#scatter-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 900px; /* Larger than the map to fit around it */
+    height: 900px;
+    pointer-events: none; /* Allows interaction with the map underneath */
+}
+
+#refreshData {
+    position: fixed; /* Fixed location */
+    top: 400px; /* Top location */
+    right: 100px; /* Right location */
+    padding: 10px; /* Offset dist */
+    background-color: #4b4b4b; /* background color */
+    color: white; /* font color */
+    border-color: white;
+    border-radius: 5px; /* fillet radius */
+    cursor: pointer; /* hand shape pointer */
+    font-size: 15px;
+    font-weight: 900;
+    font-family:Georgia, 'Times New Roman', Times, serif;
+}
+
+#refreshData:hover {
+    background-color: #383838; /* Hover color */
+}
+
+#datasetInfo {
+    position: fixed; /* Fixed location */
+    top: 10px; /* Top location */
+    left: 50px; /* Right location */
+    padding: 7px; /* Offset dist */
+    /* background-color: #3d3d3d; */
+    color: white; /* font color */
+    border-color: rgb(255, 0, 0);
+    border-radius: 5px; /* fillet radius */
+    font-size: 20px;
+    font-weight: regular;
+    font-family:'Oswald';
+    font-style:'bold700';
+}
+
+#param {
+    color: white; /* font color */
+    font-size: 12px;
+    font-weight: light;
+    font-family:'Playfair Display';
+    font-style:'bold700';
+}
+
+.scatter-point {
+    fill: white;
+    stroke: black;
+    stroke-width: 1;
+    z-index: 5;
+}
